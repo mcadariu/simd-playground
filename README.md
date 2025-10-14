@@ -1,0 +1,6 @@
+Daniel Lemire's [blog](https://lemire.me/blog/) is a treasure trove of common problems and efficient solutions (often SIMD-based) encountered in the data processing domain. 
+As I am reading the posts, as exercise: 
+
+* I convert the proposed solution to Rust
+* Annotate it with comments containing visualisations for easier understanding
+* Compare the results of benchmarking on my laptop with the ones in his posts.  
