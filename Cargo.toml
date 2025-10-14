@@ -1,0 +1,14 @@
+[package]
+name = "scratchpad"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "scratchpad"
+path = "src/lib.rs"
+
+[dependencies]
+
+[[bench]]
+name = "line_feed_bench"
+harness = false
