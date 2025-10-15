@@ -1,0 +1,10 @@
+# Clippy configuration for scratchpad project
+
+# Allow certain lints that are common in SIMD/unsafe code
+# and performance-critical implementations
+
+# Cognitive complexity can be higher for SIMD code with detailed comments
+cognitive-complexity-threshold = 30
+
+# Allow module inception (line_feed::line_feed is fine for this project structure)
+allow-module-inception = true

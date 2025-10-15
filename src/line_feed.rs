@@ -18,6 +18,29 @@ use std::arch::aarch64::*;
 // with linefeeds using vbslq_u8. For insertions in the lower 16 bytes, use
 // vextq_u8 to handle cross-register data movement.
 
+//=== Line Feed Insertion Benchmarks (ARM NEON) ===
+//
+// --- Large input (1 MB, K=64) ---
+// Scalar (large):                59.69 ms total, 17.01 GB/s throughput
+// NEON (large):                  23.76 ms total, 42.74 GB/s throughput
+//
+// --- Very large input (10 MB, K=64) ---
+// Scalar (very large):           38.37 ms total, 26.47 GB/s throughput
+// NEON (very large):             24.06 ms total, 42.21 GB/s throughput
+//
+// --- Different K values (1 MB input) ---
+// Scalar (K=32):                 67.44 ms total, 7.65 GB/s throughput
+// NEON (K=32):                   11.57 ms total, 44.58 GB/s throughput
+//
+// Scalar (K=64):                 18.49 ms total, 27.47 GB/s throughput
+// NEON (K=64):                   11.56 ms total, 43.94 GB/s throughput
+//
+// Scalar (K=72):                 17.87 ms total, 28.37 GB/s throughput
+// NEON (K=72):                   23.60 ms total, 21.48 GB/s throughput
+//
+// Scalar (K=128):                15.28 ms total, 32.97 GB/s throughput
+// NEON (K=128):                  10.93 ms total, 46.08 GB/s throughput
+
 // ───────────────────────────────────────────────────────────────────────────
 //                             Shuffle Masks
 // ───────────────────────────────────────────────────────────────────────────
@@ -343,4 +366,157 @@ pub fn insert_line_feed_neon(buffer: &[u8], k: usize) -> Vec<u8> {
     output.extend_from_slice(&buffer[input_pos..]);
 
     output
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//                                 Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scalar_basic() {
+        let input = b"ABCDEFGHIJ";
+        let result = insert_line_feed_scalar(input, 3);
+        assert_eq!(result, b"ABC\nDEF\nGHI\nJ");
+    }
+
+    #[test]
+    fn test_scalar_exact_multiple() {
+        let input = b"ABCDEF";
+        let result = insert_line_feed_scalar(input, 3);
+        assert_eq!(result, b"ABC\nDEF\n");
+    }
+
+    #[test]
+    fn test_scalar_k_zero() {
+        let input = b"ABCDEF";
+        let result = insert_line_feed_scalar(input, 0);
+        assert_eq!(result, b"ABCDEF");
+    }
+
+    #[test]
+    fn test_scalar_k_larger_than_input() {
+        let input = b"ABC";
+        let result = insert_line_feed_scalar(input, 10);
+        assert_eq!(result, b"ABC");
+    }
+
+    #[test]
+    fn test_scalar_empty_input() {
+        let input = b"";
+        let result = insert_line_feed_scalar(input, 3);
+        assert_eq!(result, b"");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_matches_scalar_small() {
+        let input = b"ABCDEFGHIJ";
+        let scalar = insert_line_feed_scalar(input, 3);
+        let neon = insert_line_feed_neon(input, 3);
+        assert_eq!(scalar, neon, "NEON and scalar results should match for small input");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_matches_scalar_k16() {
+        let input: Vec<u8> = (0..100).map(|i| (i % 256) as u8).collect();
+        let scalar = insert_line_feed_scalar(&input, 16);
+        let neon = insert_line_feed_neon(&input, 16);
+        assert_eq!(scalar, neon, "NEON and scalar results should match for k=16");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_matches_scalar_k32() {
+        let input: Vec<u8> = (0..100).map(|i| (i % 256) as u8).collect();
+        let scalar = insert_line_feed_scalar(&input, 32);
+        let neon = insert_line_feed_neon(&input, 32);
+        assert_eq!(scalar, neon, "NEON and scalar results should match for k=32");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_matches_scalar_k_large() {
+        let input: Vec<u8> = (0..500).map(|i| (i % 256) as u8).collect();
+        let scalar = insert_line_feed_scalar(&input, 64);
+        let neon = insert_line_feed_neon(&input, 64);
+        assert_eq!(scalar, neon, "NEON and scalar results should match for k=64");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_matches_scalar_various_k() {
+        let input: Vec<u8> = (0..1000).map(|i| (i % 256) as u8).collect();
+
+        for k in [1, 5, 10, 15, 16, 20, 31, 32, 50, 72, 100, 128] {
+            let scalar = insert_line_feed_scalar(&input, k);
+            let neon = insert_line_feed_neon(&input, k);
+            assert_eq!(scalar, neon, "NEON and scalar results should match for k={}", k);
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon32_impl_append() {
+        unsafe {
+            let input: [u8; 32] = (0..32).map(|i| i as u8).collect::<Vec<_>>().try_into().unwrap();
+            let result = insert_line_feed32_neon_impl(&input, 32);
+
+            // Should have all 32 bytes plus newline at the end
+            assert_eq!(result[32], b'\n');
+            assert_eq!(&result[..32], &input[..]);
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon32_impl_insert_upper() {
+        unsafe {
+            let input: [u8; 32] = (0..32).map(|i| (i + 65) as u8).collect::<Vec<_>>().try_into().unwrap();
+            let result = insert_line_feed32_neon_impl(&input, 18);
+
+            // First 18 bytes should be unchanged
+            assert_eq!(&result[..18], &input[..18]);
+            // Position 18 should be newline
+            assert_eq!(result[18], b'\n');
+            // Remaining bytes should be shifted
+            assert_eq!(&result[19..33], &input[18..32]);
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon32_impl_insert_lower() {
+        unsafe {
+            let input: [u8; 32] = (0..32).map(|i| (i + 65) as u8).collect::<Vec<_>>().try_into().unwrap();
+            let result = insert_line_feed32_neon_impl(&input, 5);
+
+            // First 5 bytes should be unchanged
+            assert_eq!(&result[..5], &input[..5]);
+            // Position 5 should be newline
+            assert_eq!(result[5], b'\n');
+            // Remaining bytes should be shifted
+            assert_eq!(&result[6..33], &input[5..32]);
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_zero_k() {
+        let input = b"ABCDEF";
+        let result = insert_line_feed_neon(input, 0);
+        assert_eq!(result, b"ABCDEF");
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_neon_empty() {
+        let input = b"";
+        let result = insert_line_feed_neon(input, 3);
+        assert_eq!(result, b"");
+    }
 }

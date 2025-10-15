@@ -1,0 +1,22 @@
+# Rustfmt configuration for scratchpad project
+
+# Basic formatting
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+
+# Imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+
+# Comments and documentation
+wrap_comments = true
+comment_width = 100
+normalize_comments = true
+normalize_doc_attributes = true
+
+# Code style
+edition = "2021"
+use_small_heuristics = "Default"
+fn_call_width = 80
+struct_lit_width = 80
