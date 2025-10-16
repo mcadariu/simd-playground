@@ -1,6 +1,6 @@
-Daniel Lemire's [blog](https://lemire.me/blog/) is a treasure trove of common problems and their (very) efficient solutions (most often SIMD-based) encountered in the data processing field. 
-As I am reading the posts, in this repo I'm: 
+Daniel Lemire's [blog](https://lemire.me/blog/) is a great resource full of common problems and (very) efficient solutions (most often SIMD-based) encountered in the data processing field. 
+As I am reading the posts, I am also (w/ AI): 
 
 * converting the solutions to Rust
-* annotating it with visualisations for easier understanding
-* run the benchmark on my laptop to check speedup
+* annotating with visualisations for easier understanding
+* run the benchmark to obtain throughput numbers
