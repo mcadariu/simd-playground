@@ -3,4 +3,4 @@ As I am reading the posts, I am also (w/ AI):
 
 * converting the solutions to Rust
 * annotating with visualisations for easier understanding
-* determine throughput numbers obtained on my Apple MacBook Pro laptop
+* run the benchmark to obtain throughput numbers
