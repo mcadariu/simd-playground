@@ -8,6 +8,7 @@ name = "scratchpad"
 path = "src/lib.rs"
 
 [dependencies]
+memchr = "2.7"
 
 [[bench]]
 name = "line_feed_bench"
@@ -15,6 +16,30 @@ harness = false
 
 [[bench]]
 name = "json_escape_bench"
+harness = false
+
+[[bench]]
+name = "csv_parse_bench"
+harness = false
+
+[[bench]]
+name = "buffer_size_bench"
+harness = false
+
+[[bench]]
+name = "cache_aware_bench"
+harness = false
+
+[[bench]]
+name = "disk_vs_memory_bench"
+harness = false
+
+[[bench]]
+name = "cold_disk_bench"
+harness = false
+
+[[bench]]
+name = "large_file_bench"
 harness = false
 
 [profile.release]
