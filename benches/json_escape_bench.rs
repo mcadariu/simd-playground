@@ -1,5 +1,5 @@
 use std::time::Instant;
-use scratchpad::json_escape::{has_json_escapable_byte, has_json_escapable_byte_scalar};
+use scratchpad::json_escape_SWAR::{has_json_escapable_byte, has_json_escapable_byte_scalar};
 
 fn bench_with_timing(name: &str, f: impl Fn() -> bool, iterations: usize, input_size: usize) -> f64 {
     // Warmup

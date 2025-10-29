@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::fs::{self, File};
 use std::io::Write;
-use scratchpad::csv_parse::count_pattern_matches_from_file;
+use scratchpad::csv_parse_buffer_size_impact::count_pattern_matches_from_file;
 
 fn bench_with_timing(name: &str, f: impl Fn() -> usize, iterations: usize, input_size: usize) -> f64 {
     // Warmup

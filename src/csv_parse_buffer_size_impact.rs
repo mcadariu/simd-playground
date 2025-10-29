@@ -30,7 +30,7 @@ const BUFFER_SIZE: usize = 4096;
 ///
 /// # Example
 /// ```no_run
-/// use scratchpad::csv_parse::count_pattern_matches_from_file;
+/// use scratchpad::csv_parse_buffer_size_impact::count_pattern_matches_from_file;
 ///
 /// let count = count_pattern_matches_from_file("researchers.csv", b"Harvard")
 ///     .expect("Failed to read file");

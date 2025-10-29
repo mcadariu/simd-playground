@@ -2,7 +2,7 @@ use std::time::Instant;
 use std::fs::{self, File};
 use std::io::Write;
 use std::process::Command;
-use scratchpad::csv_parse::{count_pattern_matches_from_file, count_pattern_matches_in_memory};
+use scratchpad::csv_parse_buffer_size_impact::{count_pattern_matches_from_file, count_pattern_matches_in_memory};
 
 fn write_test_file(file_path: &str, num_rows: usize) -> std::io::Result<()> {
     let mut file = File::create(file_path)?;

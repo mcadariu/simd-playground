@@ -23,6 +23,14 @@ name = "csv_parse_bench"
 harness = false
 
 [[bench]]
+name = "csv_state_machine_bench"
+harness = false
+
+[[bench]]
+name = "csv_adversarial_bench"
+harness = false
+
+[[bench]]
 name = "buffer_size_bench"
 harness = false
 

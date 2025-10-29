@@ -1,5 +1,5 @@
 use std::time::Instant;
-use scratchpad::line_feed::{insert_line_feed_neon, insert_line_feed_scalar};
+use scratchpad::line_feed_every_k_bytes::{insert_line_feed_neon, insert_line_feed_scalar};
 
 fn bench_with_timing(name: &str, f: impl Fn() -> Vec<u8>, iterations: usize) -> (f64, usize) {
     // Warmup

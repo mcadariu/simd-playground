@@ -109,7 +109,7 @@ pub fn has_json_escapable_byte_scalar(buffer: &[u8]) -> bool {
 ///
 /// # Example
 /// ```
-/// use scratchpad::json_escape::has_json_escapable_byte_swar;
+/// use scratchpad::json_escape_SWAR::has_json_escapable_byte_swar;
 ///
 /// // Pack bytes: [10, 92, 34, 65, 66, 67, 68, 69]
 /// let x = 0x4544434241225C0Au64;
