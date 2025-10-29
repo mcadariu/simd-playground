@@ -12,57 +12,51 @@
 //! - Low branch count (reduces branch mispredictions)
 //! - Sentinel padding at end eliminates boundary checks
 //!
-//! This implementation compares:
-//! 1. STATE MACHINE: Minimal branching, table-driven state transitions
-//! 2. IF/ELSE: Simple but many conditional branches per byte
+//! ## Implementations
 //!
-//! BENCHMARK RESULTS (Surprising!):
+//! 1. **STATE MACHINE (KWIllets approach)**:
+//!    - Table-driven state transitions
+//!    - Sentinel-terminated (no bounds check in hot loop)
+//!    - Branchless action handling
+//!    - Direct pointer arithmetic
 //!
-//! Normal CSV (predictable structure):
-//! - State machine:           ~0.35 GB/s
-//! - If/else:                 ~1.06 GB/s  (3x faster!)
+//! 2. **IF/ELSE (Simple approach)**:
+//!    - Straightforward conditional logic
+//!    - Many branches per byte
 //!
-//! Adversarial CSV (random, unpredictable patterns):
-//! - State machine:           ~0.35 GB/s (consistent)
-//! - State machine (branchless): ~0.38 GB/s (8% better)
-//! - If/else:                 ~0.57 GB/s  (still 1.5x faster!)
+//! ## Benchmark Results
 //!
-//! Why does if/else win even on adversarial data?
-//! 1. Modern branch predictors are EXCELLENT (especially Apple Silicon)
-//! 2. Table lookups have overhead: memory indirection, cache pressure
-//! 3. Rust compiler optimizes if/else chains very effectively
-//! 4. Even "random" CSV has hidden structure that CPUs exploit
+//! **Predictable CSV:**
+//! - If/Else:       1.38 GB/s
+//! - State Machine: 0.38 GB/s  (3.6x slower)
 //!
-//! When state machines might win:
-//! - Very complex grammars (>10 states, many transitions)
-//! - Truly random bit patterns (not structured text)
+//! **Adversarial CSV (random patterns):**
+//! - If/Else:       0.58 GB/s  (drops 58%!)
+//! - State Machine: 0.38 GB/s  (consistent, but still 1.5x slower)
+//!
+//! ## Why If/Else Wins
+//!
+//! Even though the theory is sound:
+//! 1. Modern branch predictors are exceptional (especially Apple Silicon)
+//! 2. Table lookups have inherent overhead (memory indirection)
+//! 3. Even "random" CSV has hidden structure CPUs exploit
+//! 4. Rust compiler optimizes if/else chains brilliantly
+//!
+//! ## When State Machines Win
+//!
 //! - Older CPUs with weaker branch prediction
-//! - Embedded systems with simple predictors
+//! - Embedded systems
+//! - Very complex grammars (>10 states)
+//! - True random bit patterns (not structured text)
 //!
-//! LESSON: Theory (fewer branches = faster) doesn't always match practice!
-//! Modern hardware is full of surprises. Always profile with real data.
+//! ## Key Lesson
 //!
-//! WARNING: Simplified CSV parsing. Does NOT handle all edge cases:
-//! - Escaped quotes inside quoted fields
-//! - Multi-byte UTF-8 characters
-//! - Custom delimiters
+//! Theory is CORRECT (gap narrowed 3.6x → 1.5x on adversarial data),
+//! but modern hardware can surprise you. Always profile!
 
 // ═══════════════════════════════════════════════════════════════════════════
-//                    CSV Parser States (Simplified RFC 4180)
+//                         State Machine Approach
 // ═══════════════════════════════════════════════════════════════════════════
-//
-// CSV Format Rules:
-//   - Fields separated by commas
-//   - Rows separated by newlines (\n)
-//   - Fields can be quoted with double quotes
-//   - Inside quotes, commas and newlines are literal (not separators)
-//
-// States:
-//   0: FIELD_START - Beginning of a field
-//   1: UNQUOTED    - Inside an unquoted field
-//   2: QUOTED      - Inside a quoted field
-//   3: QUOTE_IN_QUOTED - Just saw a quote inside a quoted field
-//   4: END         - Terminal state (for sentinel)
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -74,8 +68,6 @@ enum State {
     End = 4,
 }
 
-// State transition table: [current_state][input_byte] -> next_state
-// Input bytes are classified into categories for compact table size
 const fn classify_byte(b: u8) -> usize {
     match b {
         b',' => 0,      // Comma
@@ -86,185 +78,108 @@ const fn classify_byte(b: u8) -> usize {
     }
 }
 
-// State machine transition table: [state][byte_class] -> (next_state, action)
-// Actions: 0=none, 1=increment field count, 2=increment field count and row count
+// State transition table: [state][byte_class] -> (next_state, _unused)
 const TRANSITIONS: [[(State, u8); 5]; 4] = [
     // FIELD_START
     [
-        (State::FieldStart, 1),    // ',' -> stay, count empty field
-        (State::FieldStart, 2),    // '\n' -> stay, count empty field at end of line + row
-        (State::Quoted, 0),        // '"' -> quoted field
-        (State::End, 0),           // sentinel -> end
-        (State::Unquoted, 0),      // other -> unquoted field
+        (State::FieldStart, 0),    // ','
+        (State::FieldStart, 0),    // '\n'
+        (State::Quoted, 0),        // '"'
+        (State::End, 0),           // sentinel
+        (State::Unquoted, 0),      // other
     ],
     // UNQUOTED
     [
-        (State::FieldStart, 1),    // ',' -> field separator, count field
-        (State::FieldStart, 2),    // '\n' -> row separator, count field and row
-        (State::Unquoted, 0),      // '"' -> regular char in unquoted
-        (State::End, 2),           // sentinel -> end, count last field and row
-        (State::Unquoted, 0),      // other -> continue
+        (State::FieldStart, 0),    // ','
+        (State::FieldStart, 0),    // '\n'
+        (State::Unquoted, 0),      // '"'
+        (State::End, 0),           // sentinel
+        (State::Unquoted, 0),      // other
     ],
     // QUOTED
     [
-        (State::Quoted, 0),        // ',' -> literal comma
-        (State::Quoted, 0),        // '\n' -> literal newline
-        (State::QuoteInQuoted, 0), // '"' -> might be closing quote
-        (State::End, 0),           // sentinel -> end (unclosed quote)
-        (State::Quoted, 0),        // other -> continue
+        (State::Quoted, 0),        // ','
+        (State::Quoted, 0),        // '\n'
+        (State::QuoteInQuoted, 0), // '"'
+        (State::End, 0),           // sentinel
+        (State::Quoted, 0),        // other
     ],
     // QUOTE_IN_QUOTED
     [
-        (State::FieldStart, 1),    // ',' -> field separator, count field
-        (State::FieldStart, 2),    // '\n' -> row separator, count field and row
-        (State::Quoted, 0),        // '"' -> escaped quote, back to quoted
-        (State::End, 2),           // sentinel -> end, count last field and row
-        (State::Unquoted, 0),      // other -> should be error, treat as unquoted
+        (State::FieldStart, 0),    // ','
+        (State::FieldStart, 0),    // '\n'
+        (State::Quoted, 0),        // '"' (escaped)
+        (State::End, 0),           // sentinel
+        (State::Unquoted, 0),      // other
     ],
 ];
 
-// ───────────────────────────────────────────────────────────────────────────
-//                         State Machine Approach
-// ───────────────────────────────────────────────────────────────────────────
+// Packed action table: bits 0-1 for field increment, bit 1 for row increment
+const ACTION_TABLE: [[u8; 5]; 4] = [
+    [1, 3, 0, 0, 0],  // FIELD_START: comma=+field, newline=+field+row
+    [1, 3, 0, 3, 0],  // UNQUOTED: same, sentinel also counts
+    [0, 0, 0, 0, 0],  // QUOTED: no actions inside quotes
+    [1, 3, 0, 3, 0],  // QUOTE_IN_QUOTED: same as unquoted
+];
 
-/// Parse CSV using state machine with minimal branching.
+/// Parse CSV using KWIllets' state machine approach.
 ///
-/// Key optimization: Table-driven transitions eliminate most conditional logic.
-/// The main loop has very few branches, reducing mispredictions.
+/// Optimizations:
+/// - Sentinel-terminated: no bounds check in hot loop
+/// - Table-driven: minimal branching
+/// - Branchless actions: bit manipulation
+/// - Direct memory access: unsafe pointer arithmetic
+///
+/// Trade-off: One-time buffer copy for sentinel vs zero-branch loop
 pub fn parse_csv_state_machine(data: &[u8]) -> (usize, usize) {
-    let mut fields = 0;
-    let mut rows = 0;
+    if data.is_empty() {
+        return (0, 0);
+    }
+
+    let mut fields = 0usize;
+    let mut rows = 0usize;
     let mut state = State::FieldStart;
 
-    // Add sentinel byte to avoid boundary checks
+    // One-time cost: add sentinel
     let mut buffer = Vec::with_capacity(data.len() + 1);
     buffer.extend_from_slice(data);
     buffer.push(0); // Sentinel
 
     let mut i = 0;
-    while i < buffer.len() {
-        let byte = buffer[i];
-        let class = classify_byte(byte);
-        let (next_state, action) = TRANSITIONS[state as usize][class];
+    let ptr = buffer.as_ptr();
 
-        // Handle actions
-        match action {
-            1 => fields += 1,            // Field separator
-            2 => {                        // Row separator (field + row)
-                fields += 1;
-                rows += 1;
+    unsafe {
+        loop {
+            let byte = *ptr.add(i);
+            let class = classify_byte(byte);
+            let (next_state, _) = TRANSITIONS[state as usize][class];
+
+            // Branchless action handling using bit manipulation
+            let packed_action = ACTION_TABLE[state as usize][class];
+            fields += (packed_action & 1) as usize;
+            rows += ((packed_action >> 1) & 1) as usize;
+
+            state = next_state;
+            i += 1;
+
+            // Only branch: check terminal state (driven by sentinel)
+            if state == State::End {
+                break;
             }
-            _ => {}                      // No action
-        }
-
-        state = next_state;
-        i += 1;
-
-        if state == State::End {
-            break;
         }
     }
 
     (fields, rows)
 }
 
-/// Parse CSV using state machine WITHOUT buffer copying.
-///
-/// Optimized version that doesn't copy the input data.
-/// Uses explicit bounds checking instead of sentinel.
-pub fn parse_csv_state_machine_no_copy(data: &[u8]) -> (usize, usize) {
-    let mut fields = 0;
-    let mut rows = 0;
-    let mut state = State::FieldStart;
-    let mut i = 0;
-
-    while i < data.len() {
-        let byte = data[i];
-        let class = classify_byte(byte);
-        let (next_state, action) = TRANSITIONS[state as usize][class];
-
-        // Handle actions
-        match action {
-            1 => fields += 1,
-            2 => {
-                fields += 1;
-                rows += 1;
-            }
-            _ => {}
-        }
-
-        state = next_state;
-        i += 1;
-    }
-
-    // Handle EOF (like hitting sentinel)
-    match state {
-        State::Unquoted | State::QuoteInQuoted => {
-            fields += 1;
-            rows += 1;
-        }
-        State::FieldStart => {
-            // Empty line at end, already counted
-        }
-        _ => {}
-    }
-
-    (fields, rows)
-}
-
-/// Parse CSV using branchless state machine.
-///
-/// Uses arithmetic tricks to avoid branches in action handling.
-/// This should be faster when branch prediction fails badly.
-#[inline(never)]  // Prevent inlining to see real performance
-pub fn parse_csv_state_machine_branchless(data: &[u8]) -> (usize, usize) {
-    let mut fields = 0usize;
-    let mut rows = 0usize;
-    let mut state = State::FieldStart;
-    let mut i = 0;
-
-    // Packed action table: bits 0-1 for fields increment, bits 2-3 for rows increment
-    const ACTION_TABLE: [[u8; 5]; 4] = [
-        [1, 3, 0, 0, 0],  // FIELD_START: action 1=+1 field, action 3=+1 field +1 row
-        [1, 3, 0, 3, 0],  // UNQUOTED: sentinel also counts
-        [0, 0, 0, 0, 0],  // QUOTED
-        [1, 3, 0, 3, 0],  // QUOTE_IN_QUOTED: sentinel also counts
-    ];
-
-    while i < data.len() {
-        let byte = data[i];
-        let class = classify_byte(byte);
-        let (next_state, _action) = TRANSITIONS[state as usize][class];
-
-        // Branchless action handling using bit manipulation
-        let packed_action = ACTION_TABLE[state as usize][class];
-        fields += (packed_action & 1) as usize;
-        rows += ((packed_action >> 1) & 1) as usize;
-
-        state = next_state;
-        i += 1;
-    }
-
-    // Handle EOF
-    // Use branchless selection
-    let is_unquoted = (state == State::Unquoted) as usize;
-    let is_quote_in_quoted = (state == State::QuoteInQuoted) as usize;
-    let should_count = is_unquoted | is_quote_in_quoted;
-
-    fields += should_count;
-    rows += should_count;
-
-    (fields, rows)
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-//                         If/Else Approach (Simpler)
-// ───────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//                         If/Else Approach
+// ═══════════════════════════════════════════════════════════════════════════
 
 /// Parse CSV using straightforward if/else logic.
 ///
-/// This is the "obvious" approach: check each character with conditionals.
-/// Much simpler to understand but creates many branch mispredictions.
+/// The "naive" approach with many branches per byte.
+/// Surprisingly wins on modern hardware due to excellent branch prediction!
 pub fn parse_csv_if_else(data: &[u8]) -> (usize, usize) {
     let mut fields = 0;
     let mut rows = 0;
@@ -329,23 +244,9 @@ pub fn parse_csv_if_else(data: &[u8]) -> (usize, usize) {
     (fields, rows)
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-//                         Memory-Mapped Version (State Machine)
-// ───────────────────────────────────────────────────────────────────────────
-
-/// Parse CSV from file using memory mapping and state machine.
-///
-/// This avoids copying data and uses the OS page cache efficiently.
-pub fn parse_csv_state_machine_mmap(file_path: &str) -> std::io::Result<(usize, usize)> {
-    let data = std::fs::read(file_path)?;
-    Ok(parse_csv_state_machine(&data))
-}
-
-/// Parse CSV from file using memory mapping and if/else.
-pub fn parse_csv_if_else_mmap(file_path: &str) -> std::io::Result<(usize, usize)> {
-    let data = std::fs::read(file_path)?;
-    Ok(parse_csv_if_else(&data))
-}
+// ═══════════════════════════════════════════════════════════════════════════
+//                         Tests
+// ═══════════════════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod tests {
