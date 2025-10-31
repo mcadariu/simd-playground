@@ -22,10 +22,10 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 ### With insertion (intermediate step: "make space" by interleaving 0s which act as slots)
 * [Escaping strings (AVX)](https://lemire.me/blog/2022/09/14/escaping-strings-faster-with-avx-512)
   * get '\' and '"' into registers 
-  * load and expand to make space
+  * load and expand input with 0 every other byte to make space
   * create masks of where \ and " appear
-  * create to_keep mask of above mask or 0xAAAAAAAA (101010...) 
-  * shift (now they can be placed before the char of interest) and blend with is_quote_or_solidus to get the escaped
+  * create to_keep mask of above mask or 0xAAAAAAAA (010101...) - because we will shift 
+  * shift (now \ can be placed before the char of interest) and blend with is_quote_or_solidus to get the escaped (still has 0's)
   * compress result to remove the 0 we don't need anymore (inputs: to_keep and escaped) 
   * advance the output pointer with with the number of written bytes (to know how many, do popcnt of to_keep)
 
