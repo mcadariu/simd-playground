@@ -8,24 +8,38 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
   * create mask with elements already uppercase (compare input to A and Z, then do an AND with both)
   * add difference between 'A' and 'a' to elements according to mask
 * [Packing a string of digits into an integer](https://lemire.me/blog/2023/07/07/packing-a-string-of-digits-into-an-integer-quickly)
-* [Break a long string into lines](https://lemire.me/blog/2024/04/19/how-quickly-can-you-break-a-long-string-into-lines/)
-* [Vectorized trimming of line comments](https://lemire.me/blog/2023/04/26/vectorized-trimming-of-line-comments)
-* [Serializing IPs](https://lemire.me/blog/2023/02/01/serializing-ips-quickly-in-c)
+  * leverage fact that '2' is 0x32
+  * mask to get the high nibbles, 0x32 -> 2
+  * shuffle with table that reorders and eliminates ' '; you then have 0x00  0x01  0x09  0x02...
+  * shift to create empty space (zeros) where the other digit will go, then OR fills that space without destroying the original digit.
+  * narrow from 16-bit to 8-bit
+  * extract 64 bit integer
 * [Trimming spaces from strings (SVE)](https://lemire.me/blog/2023/03/10/trimming-spaces-from-strings-faster-with-sve-on-an-amazon-graviton-3-processor/)
+  * Get vector width in 32-bit elements
+  * Load bytes, extend to 32-bit
+  * Compare not-equal, create predicate mask
+  * Pack elements where mask=1 (removes gaps using compact)
+  * Store low bytes
+  * Count 1-bits in predicate mask
+  * Create mask for range [start, end) to process leftover
 * [Removing chars from strings (AVX)](https://lemire.me/blog/2022/04/28/removing-characters-from-strings-faster-with-avx-512)
+  * detect where whitespace is, create a mask, compress, popcnt to know how much to advance 
 * [Integers to decimal strings (AVX)](https://lemire.me/blog/2022/03/28/converting-integers-to-decimal-strings-faster-with-avx-512)
-* [Binary floating point numbers to integers](https://lemire.me/blog/2021/10/21/converting-binary-floating-point-numbers-to-integers)
-* [Integers to fix digits](https://lemire.me/blog/2021/11/18/converting-integers-to-fix-digit-representations-quickly/)
-* [Number of digits in integer](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/)
+* [Integers to fix digits (SWAR)](https://lemire.me/blog/2021/11/18/converting-integers-to-fix-digit-representations-quickly/)
 * [Removing duplicates](https://lemire.me/blog/2017/04/10/removing-duplicates-from-lists-quickly/)
+  * work in batches of 8, “ov and nv”; we need a RECONSTRUCTION vector (last element from ov and first 7 from new) - you do it with BLEND (takes 2 vectors and a mask)
+  * compare recon with nv, store in a mask
+  * population count to know how many unique (to know how many we write to output)
+  * uniqshuf[M] is a pre-computed lookup table that contains shuffle masks (SHUFFLE MASKS)
+  * Example 3: `M = 0b00010100` (Bits 2 and 4 set) **Meaning**: Positions 2 and 4 are duplicates **Input** `nv`: `[10, 11, 11, 12, 12, 13, 14, 15]` - Position 2: `11` (duplicate) - Position 4: `12` (duplicate) **Shuffle mask** `uniqshuf[20]`: (20 =   		0b00010100) ``` [0, 1, 3, 5, 6, 7, 7, 7] // Skip indices 2 and 4 
 
-### With insertion (intermediate step: insert slots)
+### With insertion (intermediate step: slots)
 * [Escaping strings (AVX)](https://lemire.me/blog/2022/09/14/escaping-strings-faster-with-avx-512)
   * get '\' and '"' into registers 
   * load and expand input with 0 every other byte to make space
   * create masks of where \ and " appear
   * create to_keep mask of above mask or 0xAAAAAAAA (010101...) - because we will shift 
-  * shift (now \ can be placed before the char of interest) and blend with is_quote_or_solidus to get the escaped (still has 0's)
+  * shift (now \ can be placed before the char of interest) and blend with is quote or \ to get the escaped (still has 0's)
   * compress result to remove the 0 we don't need anymore (inputs: to_keep and escaped) 
   * advance the output pointer with with the number of written bytes (to know how many, do popcnt of to_keep)
 
