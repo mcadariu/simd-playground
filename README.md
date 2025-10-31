@@ -1,5 +1,5 @@
 [Daniel Lemire's](https://lemire.me/blog/) and [Wojciech Muła's](http://0x80.pl/) blogs are great resources full of common problems and (very) efficient solutions (most often SIMD-based) encountered in the data processing domain. 
-As I was reading the posts, I have observed recurring themes. The goal is to reproduce them on my laptop and gather them in this repo. 
+As I was reading the posts, I have observed recurring themes. The goal is to reproduce at least one from each category on my laptop and gather them in this repo. 
 
 # Convert
 
