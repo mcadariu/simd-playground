@@ -1,10 +1,12 @@
 [Daniel Lemire's](https://lemire.me/blog/) and [Wojciech Muła's](http://0x80.pl/) blogs are great resources full of common problems and (very) efficient solutions (most often SIMD-based) encountered in the data processing domain. 
-As I was reading the posts, I have observed recurring themes. The goal is to reproduce them on my laptop and gather them in this repo. 
+As I was reading the posts, I have observed recurring themes. The goal is to reproduce them on my laptop and gather them in this repo as a quick index of "recipes". 
 
 # Convert
 
 * [ASCII to lower case (AVX)](https://lemire.me/blog/2024/08/03/converting-ascii-strings-to-lower-case-at-crazy-speeds-with-avx-512)
-* [Escaping strings (AVX)](https://lemire.me/blog/2022/09/14/escaping-strings-faster-with-avx-512)
+  * load 'A' and 'Z' into vectors
+  * create mask with elements already uppercase (compare input to A and Z, then do an AND with both)
+  * add difference between 'A' and 'a' to elements according to mask
 * [Packing a string of digits into an integer](https://lemire.me/blog/2023/07/07/packing-a-string-of-digits-into-an-integer-quickly)
 * [Break a long string into lines](https://lemire.me/blog/2024/04/19/how-quickly-can-you-break-a-long-string-into-lines/)
 * [Vectorized trimming of line comments](https://lemire.me/blog/2023/04/26/vectorized-trimming-of-line-comments)
@@ -16,6 +18,16 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 * [Integers to fix digits](https://lemire.me/blog/2021/11/18/converting-integers-to-fix-digit-representations-quickly/)
 * [Number of digits in integer](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/)
 * [Removing duplicates](https://lemire.me/blog/2017/04/10/removing-duplicates-from-lists-quickly/)
+
+### With insertion (intermediate step: "make space" by interleaving 0s which act as slots)
+* [Escaping strings (AVX)](https://lemire.me/blog/2022/09/14/escaping-strings-faster-with-avx-512)
+  * get '\' and '"' into registers 
+  * load and expand to make space
+  * create masks of where \ and " appear
+  * create to_keep mask of above mask or 0xAAAAAAAA (101010...) 
+  * shift (now they can be placed before the char of interest) and blend with is_quote_or_solidus to get the escaped
+  * compress result to remove the 0 we don't need anymore (inputs: to_keep and escaped) 
+  * advance the output pointer with with the number of written bytes (to know how many, do popcnt of to_keep)
 
 ### Decode / Transcode / Encode
 
