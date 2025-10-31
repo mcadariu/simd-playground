@@ -66,7 +66,7 @@ As I was reading the posts, I have observed recurring solutions, potentially you
 * [Computing the UTF-8 size of a Latin 1 string w/ AVX](https://lemire.me/blog/2023/02/16/computing-the-utf-8-size-of-a-latin-1-string-quickly-avx-edition/)
 * [Counting the number of matching chars in two ASCII strings](https://lemire.me/blog/2021/05/21/counting-the-number-of-matching-characters-in-two-ascii-strings)
 
-# Checking if part of group
+# Group inclusion
 * [String belongs to a small set](https://lemire.me/blog/2022/12/30/quickly-checking-that-a-string-belongs-to-a-small-set)
 * [Absence of a string](https://lemire.me/blog/2022/12/15/checking-for-the-absence-of-a-string-naive-avx-512-edition)
 
