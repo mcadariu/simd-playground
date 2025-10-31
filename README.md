@@ -19,7 +19,7 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 * [Number of digits in integer](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/)
 * [Removing duplicates](https://lemire.me/blog/2017/04/10/removing-duplicates-from-lists-quickly/)
 
-### With insertion (intermediate step: "make space" by interleaving 0s which act as slots)
+### With insertion (intermediate step: insert slots)
 * [Escaping strings (AVX)](https://lemire.me/blog/2022/09/14/escaping-strings-faster-with-avx-512)
   * get '\' and '"' into registers 
   * load and expand input with 0 every other byte to make space
