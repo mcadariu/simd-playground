@@ -108,7 +108,7 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 ### IPs
 * [IPs](https://lemire.me/blog/2023/06/08/parsing-ip-addresses-crazily-fast/)
 
-# Filtering
+# Filter
 * [Filtering numbers (SVE)](https://lemire.me/blog/2022/07/14/filtering-numbers-faster-with-sve-on-amazon-graviton-3-processors/)
 
 # Prefix minimum
