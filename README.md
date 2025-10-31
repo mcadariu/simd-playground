@@ -67,14 +67,29 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 
 * [Control chars (SWAR)](https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/)
 * [Identifiers (NEON)](https://lemire.me/blog/2023/09/04/locating-identifiers-quickly-arm-neon-edition)
+  * use a 256-element table where allowed leading characters have a set value (say 255), non-identifier characters have the value 0, and all other characters have a non-zero, non-255 value.
+  * have to use both high and low nibbles for classification
+  * bitmask processing - convert SIMD results to bitmasks for boundary detection
+  * shift trick - (mask << 1) helps find identifier starts
 * [String prefixes (SIMD)](https://lemire.me/blog/2023/07/14/recognizing-string-prefixes-with-simd-instructions/)
+  * detect where separator starts
+  * zero out everything after separator
+  * compute hash and use it in lookup table containing the hash of the prefixes
 * [JSON escapable chars (SWAR)](https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/)
-* [Escapable chars (SWAR)](https://lemire.me/blog/2025/04/13/detect-control-characters-quotes-and-backslashes-efficiently-using-swar/)
+  * the idea is to check if a byte is smaller than 32, equal to 34 or 92, for example uint64_t lt32 = (x - 0x2020202020202020ULL);
 * [Identifying sequence of digits in string](https://lemire.me/blog/2018/09/30/quickly-identifying-a-sequence-of-digits-in-a-string-of-characters)
+  * similar to above
 
 ### Scan
 
 * [HTML](https://lemire.me/blog/2024/07/05/scan-html-faster-with-simd-instructions-net-c-edition)
+  * make a lookup with the low nibbles (there are not many you look for so low is enough)
+  * extract lower nibbles from all
+  * detect position where low nibbles match
+  * tag each position with a number
+  * keep only tags that where there was a match
+  * find biggest tag that survived
+  * calculate the position = 16-biggest_tag
 * [HTML](https://lemire.me/blog/2024/07/20/scan-html-even-faster-with-simd-instructions-c-and-c)
 * [HTML](https://lemire.me/blog/2024/06/08/scan-html-faster-with-simd-instructions-chrome-edition)
 
