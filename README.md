@@ -4,7 +4,7 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 # Convert
 
 * [ASCII to lower case (AVX)](https://lemire.me/blog/2024/08/03/converting-ascii-strings-to-lower-case-at-crazy-speeds-with-avx-512)
-  * load 'A' and 'Z' into vectors
+  * load 'A' and 'Z' into regs
   * create mask with elements already uppercase (compare input to A and Z, then do an AND with both)
   * add difference between 'A' and 'a' to elements according to mask
 * [Packing a string of digits into an integer](https://lemire.me/blog/2023/07/07/packing-a-string-of-digits-into-an-integer-quickly)
