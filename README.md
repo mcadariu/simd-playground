@@ -97,6 +97,8 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 
 ### Numbers
 * [Integers (AVX)](https://lemire.me/blog/2023/09/22/parsing-integers-quickly-with-avx-512)
+  * subtract 40 from the ASCII value to get the digit
+  * use fused multiply-add to combine
 * [Floating point](https://lemire.me/blog/2021/02/22/parsing-floating-point-numbers-really-fast-in-c)
 * [String of digit into integer (SWAR)](https://lemire.me/blog/2022/01/21/swar-explained-parsing-eight-digits)
 
