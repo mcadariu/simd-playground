@@ -46,11 +46,22 @@ As I was reading the posts, I have observed recurring themes. The goal is to rep
 ### Decode / Transcode / Encode
 
 * [Decoding Base16 sequences](https://lemire.me/blog/2023/07/27/decoding-base16-sequences-quickly)
+  * load 16 chars
+  * subtract 1 from each
+  * extract high nibble (shift right 4, and with 0x0f
+  * vectorised lookup (invalid will return "enough" to set MSB to 1, valid just small adjustment)
+  * another lookup to get actual hex value
+  * fused multiply-add
+  * lastly, pack to obtain the result 
 * [Latin 1 to UTF-8 (AVX)](https://lemire.me/blog/2023/08/18/transcoding-latin-1-strings-to-utf-8-strings-at-12-gb-s-using-avx-512)
 * [UTF-8 to Latin 1 (AVX)](https://lemire.me/blog/2023/08/12/transcoding-utf-8-strings-to-latin-1-strings-at-12-gb-s-using-avx-512)
 * [Base16 encoding](https://lemire.me/blog/2022/12/23/fast-base16-encoding)
-* [Binary in ASCII](https://lemire.me/blog/2020/05/02/encoding-binary-in-ascii-very-fast)
+  * extract high and low nibbles
+  * interleave them from 4A and 3F to [0x04, 0x0A, 0x03, 0x0F..]
+  * use lookup table to convert
+* [Binary in ASCII (SWAR)](https://lemire.me/blog/2020/05/02/encoding-binary-in-ascii-very-fast)
 * [Bitset decoding (AVX)](https://lemire.me/blog/2022/05/06/fast-bitset-decoding-using-intel-avx-512)
+  * use compress (_mm512_mask_compressstoreu_epi32) using a shifting mask (e.g. at second iteration mask = (bits >> 16) & 0xFFFF) 
 
 # Search
 
