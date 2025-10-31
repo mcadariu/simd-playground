@@ -1,6 +1,15 @@
 [Daniel Lemire's](https://lemire.me/blog/) and [Wojciech Muła's](http://0x80.pl/) blogs are great resources full of common problems and (very) efficient solutions (most often SIMD-based) encountered in the data processing domain. 
 As I was reading the posts, I have observed recurring themes. The goal is to reproduce them on my laptop and gather them in this repo as a quick index of "recipes". 
 
+- [Convert](#convert)
+- [Search](#search)
+- [Parse](#parse)
+- [Filter](#filter)
+- [Prefix minimum](#prefix-minimum)
+- [Summarize](#summarize)
+- [Group inclusion](#group-inclusion)
+- [Validate](#validate)
+
 # Convert
 
 * [ASCII to lower case (AVX)](https://lemire.me/blog/2024/08/03/converting-ascii-strings-to-lower-case-at-crazy-speeds-with-avx-512)
